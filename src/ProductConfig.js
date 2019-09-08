@@ -13,6 +13,12 @@ function Color(props) {
             type="radio"
             name="colorChoice"
             value={JSON.stringify(option)}
+            onChange={props.handleColor}
+            checked={
+              props.colorChoice.description === option.description
+                ? "checked"
+                : ""
+            }
           />
           <ul>
             <li style={{ backgroundColor: option.primary }} />
@@ -53,10 +59,18 @@ function Zoom(props) {
 }
 
 class ProductConfig extends Component {
+  static Color = Color;
   static Zoom = Zoom;
 
   state = {
+    colorChoice: this.props.colorOptions[0],
     zoom: this.props.zoom || 1
+  };
+
+  handleColor = e => {
+    let change = {};
+    change[e.target.name] = JSON.parse(e.target.value);
+    this.setState(change);
   };
 
   handleZoom = value => {
@@ -69,6 +83,7 @@ class ProductConfig extends Component {
         {this.props.children(
           this.props.colorOptions,
           { ...this.state },
+          this.handleColor,
           this.handleZoom
         )}
       </React.Fragment>
@@ -76,5 +91,37 @@ class ProductConfig extends Component {
   }
 }
 
+ProductConfig.defaultProps = {
+  colorOptions: [
+    {
+      description: "Iditarod",
+      primary: "#fbfbfb", // white
+      secondary: "#f67944", // orange
+      tertiary: "#2677bb", // blue
+      quaternary: "#c7943e" // copper
+    },
+    {
+      description: "La Ruta",
+      primary: "#f4f4f4", // white
+      secondary: "#3dbd5d", // green
+      tertiary: "#303030", // black
+      quaternary: "#f77e5e" // cyan
+    },
+    {
+      description: "Vendée",
+      primary: "#37bbe4", // blue
+      secondary: "#f1f2f0", // white
+      tertiary: "#35342f", // black
+      quaternary: "#e1e0dd" // grey
+    },
+    {
+      description: "Dakar",
+      primary: "#f45844", // red
+      secondary: "#a5a6a9", // grey
+      tertiary: "#2f292b", // black
+      quaternary: "#dfe0e2" // stone
+    }
+  ]
+};
+
 export default ProductConfig;
-export { Color };
