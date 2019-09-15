@@ -5,10 +5,14 @@
   "private": true,
   "dependencies": {
     "gh-pages": "^1.2.0",
-    "rc-slider": "^8.6.2",
-    "react": "^16.5.0",
-    "react-dom": "^16.5.0",
+    "rc-slider": "^8.6.3",
+    "react": "^v16.7.0-alpha",
+    "react-dom": "^v16.7.0-alpha",
     "react-scripts": "^1.1.5"
+  },
+  "devDependencies": {
+    "enzyme": "^3.6.0",
+    "enzyme-adapter-react-16": "^1.5.0"
   },
   "scripts": {
     "predeploy": "npm run build",

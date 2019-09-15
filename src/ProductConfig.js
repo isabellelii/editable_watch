@@ -1,30 +1,65 @@
-import React, { Component } from "react";
+import React, { useContext, useState } from "react";
 import Slider from "rc-slider"; // Slider UI lib
+import { colors } from "./helpers.js";
 import "rc-slider/assets/index.css"; // Slider CSS
 import "./Color.css";
 import "./Zoom.css";
 
-function Color(props) {
+import RootContext from "./RootContext";
+
+function ProductConfig(props) {
+  // All this component does now is holds the state of the
+  // color and zoom values, and wraps all of it's children
+  // in a <Provider /> whose value is those states, and
+  // their state-setters.
+
+  const { Provider } = RootContext;
+  // Using state in a function component.
+  const [colorChoice, setColorChoice] = useState(colors[0]);
+  // Need another state value? No problem.
+  const [zoomChoice, setZoom] = useState(1);
+
+  return (
+    <Provider
+      value={{
+        colorChoice,
+        zoomChoice,
+        handleColor: value => {
+          setColorChoice(value);
+        },
+        handleZoom: value => {
+          setZoom(value);
+        }
+      }}
+    >
+      {props.children}
+    </Provider>
+  );
+}
+
+function Color() {
+  // Remember how we don't need to import the consumer? This is why:
+  // useContext will give return to us the value of the closest
+  // upstream Provider.
+  // Pretty cool, eh?
+  const { colorChoice, handleColor } = useContext(RootContext);
+
   return (
     <fieldset className="colors-container">
-      {props.colorOptions.map(option => (
+      {colors.slice(0, 4).map(option => (
         <label className="colorOption" key={option.description}>
           <input
             type="radio"
             name="colorChoice"
-            value={JSON.stringify(option)}
-            onChange={props.handleColor}
+            onChange={() => handleColor(option)}
             checked={
-              props.colorChoice.description === option.description
-                ? "checked"
-                : ""
+              colorChoice.description === option.description ? "checked" : ""
             }
           />
           <ul>
-            <li style={{ backgroundColor: option.primary }} />
-            <li style={{ backgroundColor: option.secondary }} />
-            <li style={{ backgroundColor: option.tertiary }} />
-            <li style={{ backgroundColor: option.quaternary }} />
+            {option.hexVals.map((hexVal, i) => (
+              <li key={i} style={{ backgroundColor: hexVal }} />
+            ))}
           </ul>
           <span>{option.description}</span>
         </label>
@@ -33,95 +68,33 @@ function Color(props) {
   );
 }
 
-function Zoom(props) {
+function Zoom() {
+  const { colorChoice, zoomChoice, handleZoom } = useContext(RootContext);
+
   return (
     <div className="zoom">
       <label>
-        {props.zoom > 1.25
+        {zoomChoice > 1.25
           ? "Zoom-out to get the bigger picture."
           : "Zoom-in for a more detailed view."}
       </label>
       <Slider
-        value={props.zoom}
+        value={zoomChoice}
         min={1}
         max={1.5}
         step={0.1}
-        onChange={props.handleZoom}
-        trackStyle={{ backgroundColor: props.colorChoice.secondary }}
-        railStyle={{ backgroundColor: props.colorChoice.tertiary }}
+        onChange={handleZoom}
+        trackStyle={{
+          backgroundColor: colorChoice && colorChoice.hexVals[1]
+        }}
+        railStyle={{ backgroundColor: colorChoice && colorChoice.hexVals[2] }}
         handleStyle={{
-          backgroundColor: props.colorChoice.primary,
-          borderColor: props.colorChoice.tertiary
+          backgroundColor: colorChoice && colorChoice.hexVals[0],
+          borderColor: colorChoice && colorChoice.hexVals[2]
         }}
       />
     </div>
   );
 }
 
-class ProductConfig extends Component {
-  static Color = Color;
-  static Zoom = Zoom;
-
-  state = {
-    colorChoice: this.props.colorOptions[0],
-    zoom: this.props.zoom || 1
-  };
-
-  handleColor = e => {
-    let change = {};
-    change[e.target.name] = JSON.parse(e.target.value);
-    this.setState(change);
-  };
-
-  handleZoom = value => {
-    this.setState({ zoom: value });
-  };
-
-  render() {
-    return (
-      <React.Fragment>
-        {this.props.children(
-          this.props.colorOptions,
-          { ...this.state },
-          this.handleColor,
-          this.handleZoom
-        )}
-      </React.Fragment>
-    );
-  }
-}
-
-ProductConfig.defaultProps = {
-  colorOptions: [
-    {
-      description: "Iditarod",
-      primary: "#fbfbfb", // white
-      secondary: "#f67944", // orange
-      tertiary: "#2677bb", // blue
-      quaternary: "#c7943e" // copper
-    },
-    {
-      description: "La Ruta",
-      primary: "#f4f4f4", // white
-      secondary: "#3dbd5d", // green
-      tertiary: "#303030", // black
-      quaternary: "#f77e5e" // cyan
-    },
-    {
-      description: "Vendée",
-      primary: "#37bbe4", // blue
-      secondary: "#f1f2f0", // white
-      tertiary: "#35342f", // black
-      quaternary: "#e1e0dd" // grey
-    },
-    {
-      description: "Dakar",
-      primary: "#f45844", // red
-      secondary: "#a5a6a9", // grey
-      tertiary: "#2f292b", // black
-      quaternary: "#dfe0e2" // stone
-    }
-  ]
-};
-
-export default ProductConfig;
+export { ProductConfig, Color, Zoom };

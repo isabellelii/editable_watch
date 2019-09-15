@@ -1,177 +1,352 @@
-const baseColors = {
-  offWhite: "#fbfbfb",
-  lightGrey: "#a5a6a9",
-  grey: "#dddddd",
-  darkGrey: "#0b3536"
-};
+export default function drawCanvas(
+  drawThis,
+  { canvasRef, zoomChoice, colorChoice, date }
+) {
+  let ctx = canvasRef.getContext("2d");
 
-let variableRadius;
+  const canvasWidth = canvasRef.width;
+  const baseRadius = canvasRef.width / 2;
 
-function getArcs(fillStyle) {
+  // Start drawing from the middle
+  ctx.translate(baseRadius, baseRadius);
+
+  drawThis.map(thingToDraw => {
+    thingToDraw(ctx, { canvasWidth, zoomChoice, colorChoice }, date);
+    ctx.restore();
+
+    return ctx;
+  });
+
+  // Go back to 0, 0
+  ctx.translate(-baseRadius, -baseRadius);
+
+  return ctx;
+}
+
+export function drawArcs(ctx, { canvasWidth, zoomChoice, colorChoice }) {
+  getArcs({ canvasWidth, zoomChoice, colorChoice }).map(({ r, fillStyle }) => {
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    ctx.arc(0, 0, r, 0, 2 * Math.PI);
+    ctx.fill();
+
+    ctx.strokeStyle = "#2f292b";
+    ctx.stroke();
+
+    return ctx;
+  });
+
+  return ctx;
+}
+
+export function drawText(ctx, { canvasWidth, zoomChoice, colorChoice }) {
+  getText({ canvasWidth, zoomChoice, colorChoice }).map(
+    ({
+      text,
+      translate,
+      font,
+      textBaseline,
+      textAlign,
+      fillStyle,
+      strokeStyle,
+      rotate
+    }) => {
+      ctx.font = font;
+      ctx.textBaseline = textBaseline;
+      ctx.textAlign = textAlign;
+      ctx.fillStyle = fillStyle;
+      ctx.strokeStyle = strokeStyle;
+
+      ctx.rotate(rotate);
+      ctx.translate(0, -translate);
+
+      // Rotate some numbers back
+      text !== "I" && ctx.rotate(-rotate);
+
+      ctx.fillText(text, 0, 0);
+      ctx.strokeText(text, 0, 0);
+
+      // Rotate some numbers back
+      text !== "I" && ctx.rotate(rotate);
+
+      ctx.translate(0, translate);
+      ctx.rotate(-rotate);
+
+      return ctx;
+    }
+  );
+
+  return ctx;
+}
+
+export function drawLines(ctx, { canvasWidth, zoomChoice, colorChoice }) {
+  getLines({ canvasWidth, zoomChoice, colorChoice }).map(
+    ({ fillStyle, strokeStyle, rotate, translate, y }) => {
+      ctx.strokeWidth = 1;
+      ctx.fillStyle = fillStyle;
+      ctx.strokeStyle = strokeStyle;
+
+      ctx.rotate(rotate);
+      ctx.translate(0, -translate);
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(0, y);
+      ctx.stroke();
+
+      ctx.translate(0, translate);
+      ctx.rotate(-rotate);
+
+      return ctx;
+    }
+  );
+
+  return ctx;
+}
+
+export function drawRects(ctx, { canvasWidth, zoomChoice, colorChoice }, d) {
+  getRects({ canvasWidth, zoomChoice, colorChoice }, d).forEach(
+    (rect, index) => {
+      const { position, thickness, length, fillStyle } = rect;
+
+      ctx.fillStyle = fillStyle;
+      ctx.rotate(position);
+      ctx.beginPath();
+
+      if (index !== 0) {
+        // Custom hour hand
+        ctx.rect(-thickness / 2, 5, thickness, -length);
+      } else {
+        drawCustomHand(ctx, rect);
+      }
+
+      ctx.fill();
+      ctx.stroke();
+      ctx.rotate(-position);
+    }
+  );
+}
+
+function getArcs({ canvasWidth, zoomChoice, colorChoice }) {
+  const baseRadius = canvasWidth / 2;
+  const zoomAdjustedRadius = baseRadius * zoomChoice;
+  const fillStyle = colorChoice.hexVals[0];
+
   return [
     {
-      variableRadius: variableRadius * 0.99, // Keeps the stroke from being cut-out
-      fillStyle: baseColors.grey
+      r: zoomAdjustedRadius * 0.99, // Keeps the stroke from being cut-out
+      fillStyle: "#dddddd" // grey
     },
     {
-      variableRadius: variableRadius * 0.98,
-      fillStyle: baseColors.lightGrey
+      r: zoomAdjustedRadius * 0.98,
+      fillStyle: "#a5a6a9" // lightGrey
     },
     {
-      variableRadius: variableRadius * 0.96,
-      fillStyle: baseColors.grey
+      r: zoomAdjustedRadius * 0.96,
+      fillStyle: "#dddddd" // grey
     },
     {
-      variableRadius: variableRadius * 0.94,
-      fillStyle: baseColors.lightGrey
+      r: zoomAdjustedRadius * 0.94,
+      fillStyle: "#a5a6a9" // lightGrey
     },
     {
-      variableRadius: variableRadius * 0.92,
+      r: zoomAdjustedRadius * 0.92,
       fillStyle
     }
   ];
 }
 
-function drawArcs(ctx, arcs) {
-  arcs.forEach(arc => {
-    ctx.fillStyle = arc.fillStyle;
-    ctx.beginPath();
-    ctx.arc(0, 0, arc.variableRadius, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.stroke();
-  });
-}
+function getText({ canvasWidth, zoomChoice, colorChoice }) {
+  const baseRadius = canvasWidth / 2;
+  const zoomAdjustedRadius = baseRadius * zoomChoice;
+  const translate = zoomAdjustedRadius * 0.7;
 
-function getText(fillStyle, strokeStyle) {
-  const text = [
-    "I",
-    "2",
-    "I",
-    "IV",
-    "I",
-    "VI",
-    "I",
-    "VIII",
-    "I",
-    "10",
-    "I",
-    "12"
-  ].map((numeralString, index) => {
-    const rotate = [0, 2, 4, 6, 8, 10].indexOf(index) >= 0 ? false : true; // Only rotate the actual numbers
+  const fillStyle = colorChoice.hexVals[1];
+  const font = `${zoomAdjustedRadius * 0.2}px Arial, Helvetica, sans-serif`;
+  const strokeStyle = colorChoice.hexVals[2];
+  const textAlign = "center";
+  const textBaseline = "middle";
 
-    return {
-      numeralString,
+  return [
+    {
       fillStyle,
+      font,
       strokeStyle,
-      rotate: rotate
-    };
-  });
-
-  return text;
+      textAlign,
+      textBaseline,
+      rotate: (1 * Math.PI) / 6,
+      text: "I",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (2 * Math.PI) / 6,
+      text: "2",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (3 * Math.PI) / 6,
+      text: "I",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (4 * Math.PI) / 6,
+      text: "IV",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (5 * Math.PI) / 6,
+      text: "I",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (6 * Math.PI) / 6,
+      text: "VI",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (7 * Math.PI) / 6,
+      text: "I",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (8 * Math.PI) / 6,
+      text: "VIII",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (9 * Math.PI) / 6,
+      text: "I",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (10 * Math.PI) / 6,
+      text: "10",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (11 * Math.PI) / 6,
+      text: "I",
+      translate
+    },
+    {
+      fillStyle,
+      font,
+      strokeStyle,
+      textAlign,
+      textBaseline,
+      rotate: (12 * Math.PI) / 6,
+      text: "12",
+      translate
+    }
+  ];
 }
 
-function drawText(ctx, text) {
-  text.forEach((textNode, index) => {
-    const { numeralString, fillStyle, strokeStyle, rotate } = textNode;
-    const ang = ((index + 1) * Math.PI) / 6;
+function getLines({ canvasWidth, zoomChoice, colorChoice }) {
+  const baseRadius = canvasWidth / 2;
+  const zoomAdjustedRadius = baseRadius * zoomChoice;
 
-    ctx.fillStyle = fillStyle;
-    ctx.strokeStyle = strokeStyle;
+  const lineCount = 60;
 
-    ctx.rotate(ang);
-    ctx.translate(0, -variableRadius * 0.7);
+  const fillRange = (start, end) => {
+    return Array(end - start + 1)
+      .fill()
+      .map((line, index) => {
+        return {
+          fillStyle: colorChoice.hexVals[3],
+          height: canvasWidth * 0.1,
+          strokeStyle: colorChoice.hexVals[2],
+          rotate: ((index + 1) * 2 * Math.PI) / 60,
+          translate: zoomAdjustedRadius * 0.9,
+          width: canvasWidth * 0.05,
+          y: zoomAdjustedRadius * 0.08
+        };
+      });
+  };
 
-    rotate === true && ctx.rotate(-ang);
-    ctx.fillText(numeralString, 0, 0);
-    ctx.strokeText(numeralString, 0, 0);
-    rotate === true && ctx.rotate(ang); // rotate back
-
-    ctx.translate(0, variableRadius * 0.7);
-    ctx.rotate(-ang);
-  });
+  return fillRange(0, lineCount - 1);
 }
 
-function getLines(fillStyle, strokeStyle) {
-  const lines = new Array(60);
-  lines.fill({});
+function getRects({ canvasWidth, zoomChoice, colorChoice }, d) {
+  const hours = d.getHours();
+  const mins = d.getMinutes();
+  const secs = d.getSeconds();
 
-  lines.forEach(line => {
-    // Create a new array of 60 (lines for minute-indexes)
-    line.fillStyle = fillStyle;
-    line.strokeStyle = strokeStyle;
-  });
-  return lines;
-}
-
-function drawLines(ctx, lines) {
-  lines.forEach((line, index) => {
-    const { fillStyle, strokeStyle } = line;
-
-    ctx.fillStyle = fillStyle;
-    ctx.strokeStyle = strokeStyle;
-
-    const angle = ((index + 1) * 2 * Math.PI) / 60;
-
-    ctx.rotate(angle);
-    ctx.translate(0, -variableRadius * 0.9);
-
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(0, variableRadius * 0.08);
-    ctx.stroke();
-
-    ctx.translate(0, variableRadius * 0.9);
-    ctx.rotate(-angle);
-  });
-}
-
-function getRects(time, secondary, tertiary, quaternary) {
-  const { hours, minutes, seconds } = time;
+  const baseRadius = canvasWidth / 2;
+  const zoomAdjustedRadius = baseRadius * zoomChoice;
 
   return [
     {
       position:
         (hours * Math.PI) / 6 +
-        (minutes * Math.PI) / (6 * 60) +
-        (seconds * Math.PI) / (360 * 60),
-      thickness: variableRadius * 0.06,
-      length: variableRadius * 0.5,
-      fillStyle: secondary
+        (mins * Math.PI) / (6 * 60) +
+        (secs * Math.PI) / (360 * 60),
+      thickness: zoomAdjustedRadius * 0.06,
+      length: zoomAdjustedRadius * 0.5,
+      fillStyle: colorChoice.hexVals[1]
     },
     {
-      position: (minutes * Math.PI) / 30 + (seconds * Math.PI) / (30 * 60),
-      thickness: variableRadius * 0.05,
-      length: variableRadius * 0.75,
-      fillStyle: tertiary
+      position: (mins * Math.PI) / 30 + (secs * Math.PI) / (30 * 60),
+      thickness: zoomAdjustedRadius * 0.05,
+      length: zoomAdjustedRadius * 0.75,
+      fillStyle: colorChoice.hexVals[2]
     },
     {
-      position: (seconds * Math.PI) / 30,
-      thickness: variableRadius * 0.03,
-      length: variableRadius * 0.8,
-      fillStyle: quaternary
+      position: (secs * Math.PI) / 30,
+      thickness: zoomAdjustedRadius * 0.03,
+      length: zoomAdjustedRadius * 0.8,
+      fillStyle: colorChoice.hexVals[3]
     }
   ];
-}
-
-function drawRects(ctx, rects) {
-  rects.forEach((rect, index) => {
-    const { position, thickness, length, fillStyle } = rect;
-
-    ctx.fillStyle = fillStyle;
-    ctx.rotate(position);
-    ctx.beginPath();
-
-    if (index !== 0) {
-      // Custom hour hand
-      ctx.rect(-thickness / 2, 5, thickness, -length);
-    } else {
-      drawCustomHand(ctx, rect);
-    }
-
-    ctx.fill();
-    ctx.stroke();
-    ctx.rotate(-position);
-  });
 }
 
 function drawCustomHand(ctx, rect) {
@@ -195,32 +370,95 @@ function drawCustomHand(ctx, rect) {
   ctx.lineTo(0, 0);
 }
 
-function drawCanvas(ctx, props, time, canvasWidth) {
-  const { primary, secondary, tertiary, quaternary } = props.colors || {};
-  const baseRadius = canvasWidth / 2;
+export const colors = [
+  {
+    description: "Iditarod",
+    hexVals: [
+      "#fbfbfb", // white
+      "#f67944", // orange
+      "#2677bb", // blue
+      "#c7943e" // copper
+    ]
+  },
+  {
+    description: "La Ruta",
+    hexVals: [
+      "#f4f4f4", // white
+      "#3dbd5d", // green
+      "#303030", // black
+      "#f77e5e" // cyan
+    ]
+  },
+  {
+    description: "Vendée",
+    hexVals: [
+      "#37bbe4", // blue
+      "#f1f2f0", // white
+      "#35342f", // black
+      "#e1e0dd" // grey
+    ]
+  },
+  {
+    description: "Dakar",
+    hexVals: [
+      "#f45844", // red
+      "#a5a6a9", // grey
+      "#2f292b", // black
+      "#dfe0e2" // stone
+    ]
+  },
 
-  variableRadius = baseRadius * (props.zoom || 1);
-
-  const zoomOffset = variableRadius - baseRadius;
-
-  ctx.lineWidth = 1;
-  ctx.font = `${variableRadius * 0.2}px Arial, Helvetica, sans-serif`;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
-  ctx.fillStyle = baseColors.offWhite;
-  ctx.strokeStyle = baseColors.darkGrey;
-
-  ctx.translate(variableRadius - zoomOffset, variableRadius - zoomOffset);
-  ctx.save(); // saves the basic ctx
-
-  drawArcs(ctx, getArcs(primary));
-  drawLines(ctx, getLines(secondary, tertiary));
-  drawText(ctx, getText(secondary, tertiary));
-  ctx.restore();
-
-  drawRects(ctx, getRects(time, secondary, tertiary, quaternary));
-
-  ctx.translate(-variableRadius + zoomOffset, -variableRadius + zoomOffset);
-}
-
-export { drawCanvas };
+  {
+    description: "October",
+    hexVals: [
+      "#666666", // grey
+      "#ee8012", // orange
+      "#e4e6dd", // stone
+      "#000003" // black
+    ]
+  },
+  {
+    description: "Poison",
+    hexVals: [
+      "#303030", // black
+      "#f77e5e", // orange
+      "#3dbd5d", // green
+      "#f4f4f4" // white
+    ]
+  },
+  {
+    description: "Summer",
+    hexVals: [
+      "#e6c700", // yellow
+      "#008cbc", // blue
+      "#007500", // green
+      "#fef9f7" // white
+    ]
+  },
+  {
+    description: "Desert",
+    hexVals: [
+      "#f0c24f", // sand
+      "#f3f3eb", // cloud
+      "#151515", // black
+      "#f0ca75" // tan
+    ]
+  },
+  {
+    description: "Pop",
+    hexVals: [
+      "#0098d8", // blue
+      "#e5e7de", // grey
+      "#f54123", // red
+      "#0b3536" // black
+    ]
+  },
+  {
+    description: "80s",
+    hexVals: [
+      "#de3d83", // pink
+      "#00b8b8", // blue
+      "#e4bd0b" // yellow
+    ]
+  }
+];

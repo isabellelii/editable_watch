@@ -70,11 +70,11 @@ main {
 }
 
 .header {
-  background-color: var(--blue);
+  background-color: silver;
 }
 
 .header .brand {
-  color: var(--red);
+  color: black;
   text-shadow: var(--light-shadow);
 }
 

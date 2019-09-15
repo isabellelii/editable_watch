@@ -32,10 +32,6 @@
   padding: 0;
 }
 
-.colorOption ul li {
-  width: 25%;
-}
-
 .colorOption label {
   margin: 0;
   padding: 0;
@@ -50,6 +46,6 @@
 }
 
 .colorOption li {
-  width: 1em;
-  height: 1.2em;
+  width: 50%;
+  height: 1em;
 }
